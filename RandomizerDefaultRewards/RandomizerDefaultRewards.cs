@@ -24,7 +24,7 @@ namespace RandomizerDefaultRewards
                 "Mod enabled?"
             );
 
-            // reroute some methods through the delegate
+            // reroute the reward granting method through the delegate
             On.CombatController.GrantReward += CombatController_GrantReward;
 
         }
@@ -39,8 +39,7 @@ namespace RandomizerDefaultRewards
                 // go through the enemies
                 foreach (Monster monster in self.Enemies)
                 {
-                    Debug.Log("Before common: [" + string.Join(", ", monster.RewardsCommon.Select(m => m.GetComponent<BaseItem>().name)) + "]");
-                    Debug.Log("Before rare: [" + string.Join(", ", monster.RewardsRare.Select(m => m.GetComponent<BaseItem>().name)) + "]");
+                    LogRewardLists("Initial", monster);
                     List<GameObject> commonsTemp = new List<GameObject>();
                     List<GameObject> raresTemp = new List<GameObject>();
                     List<GameObject> commonsBackupTemp = new List<GameObject>();
@@ -53,21 +52,17 @@ namespace RandomizerDefaultRewards
                     // backup rares, add catalysts and eggs to the modified reward list
                     foreach (GameObject gameObject in monster.RewardsRare)
                     {
+                        BaseItem baseItem = gameObject.GetComponent<BaseItem>();
                         raresBackupTemp.Add(gameObject);
-                        if (gameObject.GetComponent<BaseItem>() is Egg)
+                        // keep eggs
+                        if (baseItem is Egg)
                         {
-                            // evolved monsters can drop their special eggs
-                            if (monster.EvolutionEgg != null)
-                            {
-                                raresTemp.Add(monster.EvolutionEgg);
-                            } else
-                            {
-                                raresTemp.Add(gameObject);
-                            }
-                            
+                            // if the monster has an evolution egg, add that instead
+                            raresTemp.Add(monster.EvolutionEgg ?? gameObject);
                         }
-                        if (gameObject.GetComponent<BaseItem>() is Catalyst)
+                        else if (baseItem is Catalyst)
                         {
+                            // keep catalysts
                             raresTemp.Add(gameObject);
                         }
                     }
@@ -75,13 +70,16 @@ namespace RandomizerDefaultRewards
                     raresBackup.Add(raresBackupTemp);
                     // put the rewards of the original monster (which you would fight without randomizer) in the lists. ignore eggs and
                     // catalysts in the list for rare rewards as we want to get eggs/catalysts or the monster we are actually fighting
-                    foreach (GameObject gameObject in GameModeManager.Instance.GetReverseReplacement(monster).RewardsCommon)
+                    Monster reverseReplacementMonster = GameModeManager.Instance.GetReverseReplacement(monster);
+                    foreach (GameObject gameObject in reverseReplacementMonster.RewardsCommon)
                     {
                         commonsTemp.Add(gameObject);
                     }
-                    foreach (GameObject gameObject in GameModeManager.Instance.GetReverseReplacement(monster).RewardsRare)
+                    foreach (GameObject gameObject in reverseReplacementMonster.RewardsRare)
                     {
-                        if (!(gameObject.GetComponent<BaseItem>() is Egg) && !(gameObject.GetComponent<BaseItem>() is Catalyst))
+                        // ignore eggs and catalysts as those are from a different monster
+                        BaseItem baseItem = gameObject.GetComponent<BaseItem>();
+                        if (!(baseItem is Egg) && !(baseItem is Catalyst))
                         {
                             raresTemp.Add(gameObject);
                         }
@@ -89,8 +87,7 @@ namespace RandomizerDefaultRewards
                     // bind the modified lists to the monster before determining rewards
                     monster.RewardsRare = raresTemp;
                     monster.RewardsCommon = commonsTemp;
-                    Debug.Log("After common: [" + string.Join(", ", monster.RewardsCommon.Select(m => m.GetComponent<BaseItem>().name)) + "]");
-                    Debug.Log("After rare: [" + string.Join(", ", monster.RewardsRare.Select(m => m.GetComponent<BaseItem>().name)) + "]");
+                    LogRewardLists("Changed", monster);
 
                 }
                 orig(self);
@@ -98,18 +95,21 @@ namespace RandomizerDefaultRewards
                 int i = 0;
                 foreach (Monster monster in self.Enemies)
                 {
-                    Debug.Log("Restore before common: [" + string.Join(", ", monster.RewardsCommon.Select(m => m.GetComponent<BaseItem>().name)) + "]");
-                    Debug.Log("Restore before rare: [" + string.Join(", ", monster.RewardsRare.Select(m => m.GetComponent<BaseItem>().name)) + "]");
                     monster.RewardsRare = raresBackup[i];
                     monster.RewardsCommon = commonsBackup[i++];
-                    Debug.Log("Restore after common: [" + string.Join(", ", monster.RewardsCommon.Select(m => m.GetComponent<BaseItem>().name)) + "]");
-                    Debug.Log("Restore after rare: [" + string.Join(", ", monster.RewardsRare.Select(m => m.GetComponent<BaseItem>().name)) + "]");
+                    LogRewardLists("Restored", monster);
                 }
             } else
             {
                 orig(self);
             }
             
+        }
+
+        private void LogRewardLists(string prefix, Monster monster)
+        {
+            Debug.Log(prefix + " common: [" + string.Join(", ", monster.RewardsCommon.Select(m => m.GetComponent<BaseItem>().name)) + "]");
+            Debug.Log(prefix + " rare: [" + string.Join(", ", monster.RewardsRare.Select(m => m.GetComponent<BaseItem>().name)) + "]");
         }
 
     }
