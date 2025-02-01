@@ -108,8 +108,8 @@ namespace RandomizerDefaultRewards
 
         private void LogRewardLists(string prefix, Monster monster)
         {
-            Debug.Log(prefix + " common: [" + string.Join(", ", monster.RewardsCommon.Select(m => m.GetComponent<BaseItem>().name)) + "]");
-            Debug.Log(prefix + " rare: [" + string.Join(", ", monster.RewardsRare.Select(m => m.GetComponent<BaseItem>().name)) + "]");
+            Debug.Log($"{prefix}: {monster.GetName()} common rewards: {string.Join(", ", monster.RewardsCommon.Select(m => m.GetComponent<BaseItem>().name))}");
+            Debug.Log($"{prefix}: {monster.GetName()} rare rewards: {string.Join(", ", monster.RewardsRare.Select(m => m.GetComponent<BaseItem>().name))}");
         }
 
     }
